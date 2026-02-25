@@ -1,6 +1,7 @@
 import torch
 from typing import Optional
 from diffusers.optimization import SchedulerType, TYPE_TO_SCHEDULER_FUNCTION, get_constant_schedule_with_warmup
+from transformers.optimization import get_cosine_with_min_lr_schedule_with_warmup
 
 
 def get_lr_scheduler(
@@ -46,6 +47,20 @@ def get_lr_scheduler(
             kwargs['num_warmup_steps'] = 1000
         del kwargs['total_iters']
         return get_constant_schedule_with_warmup(optimizer, **kwargs)
+    elif name == 'cosine_with_warmup':
+        num_training_steps = kwargs.pop('total_iters', 1000)
+        num_warmup_steps = kwargs.pop('num_warmup_steps', 0)
+        min_lr = kwargs.pop('min_lr', None)
+        min_lr_rate = kwargs.pop('min_lr_rate', None)
+        if min_lr is None and min_lr_rate is None:
+            min_lr_rate = 0.0
+        return get_cosine_with_min_lr_schedule_with_warmup(
+            optimizer,
+            num_warmup_steps=num_warmup_steps,
+            num_training_steps=num_training_steps,
+            min_lr=min_lr,
+            min_lr_rate=min_lr_rate,
+        )
     else:
         # try to use a diffusers scheduler
         print(f"Trying to use diffusers scheduler {name}")
